@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">UDP</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="clientButtonString">Client</string>
+    <string name="serverButtonString">Server</string>
+    <string name="partnerIPString">Partner\'s IP</string>
+    <string name="messageString">Message</string>
+    <string name="sendString">Send</string>
+    <string name="connectString">Connect</string>
+    <string name="welcomeString">\t\t\t\t  Welcome!! \nSelect one of server or client \n\n</string>
+</resources>
