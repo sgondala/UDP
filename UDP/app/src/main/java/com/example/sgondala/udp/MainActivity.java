@@ -1,5 +1,6 @@
 package com.example.sgondala.udp;
 
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.StrictMode;
 import android.support.v7.app.ActionBarActivity;
@@ -59,26 +60,10 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void clickedSend(View v){ //Default port of 4444
-          try{
 
-            EditText e = (EditText) findViewById(R.id.messageBox);
-            String message = e.getText().toString();
+        new sendUDPTask().execute();
+        Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
 
-            //String message = "Hello";
-
-            byte[] sendBuffer = new byte[1024];
-            sendBuffer = message.getBytes();
-
-            DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, inetAddress, 4444);
-
-            clientSocket.send(sendPacket);
-
-            Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
-        }
-
-        catch(IOException e){
-            //Toast.makeText(getApplicationContext(), "IOException in sending", Toast.LENGTH_SHORT).show();
-        }
     }
 
     public void clickedConnect(View v){
@@ -93,12 +78,41 @@ public class MainActivity extends ActionBarActivity {
             String outPut = inetAddress.toString();
             Toast.makeText(getApplicationContext(), "Connected, "+outPut, Toast.LENGTH_SHORT).show();
         } catch (SocketException e) {
-            //Toast.makeText(getApplicationContext(), "Socket Exception", Toast.LENGTH_SHORT).show();
+            System.out.println("A:Socket Exception");
         }
 
         catch (UnknownHostException e){
-            //Toast.makeText(getApplicationContext(), "Unknown host exception", Toast.LENGTH_SHORT).show();
+            System.out.println("A:Unknown Host Exception");
         }
         //Toast.makeText(getApplicationContext(), "Done", Toast.LENGTH_SHORT).show();
+    }
+
+    private class sendUDPTask extends AsyncTask<Void, Void, Void>{
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            try{
+
+                EditText e = (EditText) findViewById(R.id.messageBox);
+                String message = e.getText().toString();
+
+                //String message = "Hello";
+
+                byte[] sendBuffer = new byte[1024];
+                sendBuffer = message.getBytes();
+
+                DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, inetAddress, 4444);
+
+                clientSocket.send(sendPacket);
+
+
+            }
+
+            catch(IOException e){
+                System.out.println("IOException in sending");
+            }
+            return null;
+        }
+
     }
 }
