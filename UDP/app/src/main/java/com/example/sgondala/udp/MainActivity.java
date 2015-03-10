@@ -1,27 +1,20 @@
 package com.example.sgondala.udp;
 
 import android.os.AsyncTask;
-import android.os.Build;
-import android.os.StrictMode;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
@@ -64,8 +57,6 @@ public class MainActivity extends ActionBarActivity {
 
     public void clickedSend(View v){ //Default port of 4444
         new sendUDPTask().execute();
-        //TextView displayBox = (TextView) findViewById(R.id.displayBox);
-        //displayBox.setText("Sent Successfully");
         Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
 
@@ -90,6 +81,7 @@ public class MainActivity extends ActionBarActivity {
         //Toast.makeText(getApplicationContext(), "Done", Toast.LENGTH_SHORT).show();
     }
 
+
     public void selectedServer(){
         try {
             serverSocket = new DatagramSocket(4444);
@@ -101,11 +93,11 @@ public class MainActivity extends ActionBarActivity {
         new receiveUDPTask().execute();
     }
 
+
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
         byte[] buf = new byte[1024];
         DatagramPacket dp = new DatagramPacket(buf, 1024);
-
 
         @Override
         protected Void doInBackground(Void... params) {
@@ -120,27 +112,20 @@ public class MainActivity extends ActionBarActivity {
                     e.printStackTrace();
                 }
 
-                //String str = new String(dp.getData(),0,dp.getLength());
-                //changed = true;
-                //doPrint(str);
-                //TextView displayBox = (TextView) findViewById(R.id.displayBox);
-                //displayBox.setText(str);
-           }
+                final String str = new String(dp.getData(),0,dp.getLength());
 
-           // return null;
+               runOnUiThread(new Runnable() {
+                   @Override
+                   public void run() {
+                       TextView displayBox = (TextView) findViewById(R.id.displayBox);
+                       displayBox.setText(str);
+                   }
+               });
+           }
+            //return null;
         }
 
     }
-
-    /*
-    public void doPrint(String str){
-
-        Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
-        TextView displayBox= (TextView) findViewById(R.id.displayBox);
-        displayBox.setText(str);
-
-    }
-    */
 
     private class sendUDPTask extends AsyncTask<Void, Void, Void>{
 
