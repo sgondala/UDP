@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="\t\t\t\t  Welcome!! \nSelect one of server or client \n\n"
+        android:text="@string/welcomeString"
         android:layout_gravity="center_horizontal" />
 
     <EditText
@@ -26,22 +26,36 @@
         android:layout_gravity="center_horizontal"
         android:hint="@string/messageString"/>
 
+    <RadioGroup
+        android:checkedButton="@+id/clientButton"
+        android:layout_width="wrap_content"
+        android:orientation="horizontal"
+        android:layout_gravity="center_horizontal"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:id="@+id/clientButton"
+            android:text="@string/clientButtonString"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="clickedRadioButton" />
+
+        <RadioButton
+            android:id="@+id/serverButton"
+            android:text="@string/serverButtonString"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="clickedRadioButton" />
+
+    </RadioGroup>
+
     <Button
-        android:id="@+id/clientButton"
+        android:id="@+id/connectButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/clientButtonString"
         android:layout_gravity="center_horizontal"
         android:onClick="clickedConnect"/>
-
-    <!--
-    <Button
-        android:id="@+id/serverButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/serverButtonString"
-        android:layout_gravity="center_horizontal" />
-        -->
 
     <Button
         android:id="@+id/sendButton"
@@ -51,7 +65,11 @@
         android:layout_gravity="center_horizontal"
         android:onClick="clickedSend" />
 
-
-
+    <TextView
+        android:layout_gravity="center_horizontal"
+        android:id="@+id/displayBox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+    />
 
 </LinearLayout>

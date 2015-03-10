@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
@@ -29,6 +30,7 @@ public class MainActivity extends ActionBarActivity {
 
     DatagramSocket clientSocket;
     InetAddress inetAddress;
+    Boolean isServer = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,10 +62,10 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void clickedSend(View v){ //Default port of 4444
-
         new sendUDPTask().execute();
-        Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
-
+        TextView displayBox = (TextView) findViewById(R.id.displayBox);
+        displayBox.setText("Sent Successfully");
+        //Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
 
     public void clickedConnect(View v){
@@ -115,4 +117,23 @@ public class MainActivity extends ActionBarActivity {
         }
 
     }
+
+    public void clickedRadioButton(View view){
+        Button btn = (Button) findViewById(R.id.sendButton);
+        switch (view.getId()) {
+            case R.id.clientButton:
+                isServer = false;
+                btn.setEnabled(true);
+                break;
+            case R.id.serverButton:
+                isServer = true;
+                btn.setEnabled(false);
+                break;
+        }
+    }
+
 }
+
+
+
+
