@@ -53,7 +53,7 @@
         android:id="@+id/connectButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/clientButtonString"
+        android:text="@string/connectString"
         android:layout_gravity="center_horizontal"
         android:onClick="clickedConnect"/>
 

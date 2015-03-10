@@ -31,6 +31,7 @@ public class MainActivity extends ActionBarActivity {
     DatagramSocket clientSocket;
     InetAddress inetAddress;
     Boolean isServer = false;
+    DatagramSocket serverSocket = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,9 +64,9 @@ public class MainActivity extends ActionBarActivity {
 
     public void clickedSend(View v){ //Default port of 4444
         new sendUDPTask().execute();
-        TextView displayBox = (TextView) findViewById(R.id.displayBox);
-        displayBox.setText("Sent Successfully");
-        //Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
+        //TextView displayBox = (TextView) findViewById(R.id.displayBox);
+        //displayBox.setText("Sent Successfully");
+        Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
 
     public void clickedConnect(View v){
@@ -89,25 +90,69 @@ public class MainActivity extends ActionBarActivity {
         //Toast.makeText(getApplicationContext(), "Done", Toast.LENGTH_SHORT).show();
     }
 
+    public void selectedServer(){
+        try {
+            serverSocket = new DatagramSocket(4444);
+            System.out.println("Created server socket");
+        } catch (SocketException e) {
+            System.out.println("Error in creating new socket");
+        }
+
+        new receiveUDPTask().execute();
+    }
+
+    private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
+
+        byte[] buf = new byte[1024];
+        DatagramPacket dp = new DatagramPacket(buf, 1024);
+
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+           while(true){
+                System.out.println("Listening for packets");
+                try {
+                    serverSocket.receive(dp);
+                    System.out.println("Got packet!!!!!");
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                //String str = new String(dp.getData(),0,dp.getLength());
+                //changed = true;
+                //doPrint(str);
+                //TextView displayBox = (TextView) findViewById(R.id.displayBox);
+                //displayBox.setText(str);
+           }
+
+           // return null;
+        }
+
+    }
+
+    /*
+    public void doPrint(String str){
+
+        Toast.makeText(getApplicationContext(), str, Toast.LENGTH_SHORT).show();
+        TextView displayBox= (TextView) findViewById(R.id.displayBox);
+        displayBox.setText(str);
+
+    }
+    */
+
     private class sendUDPTask extends AsyncTask<Void, Void, Void>{
 
         @Override
         protected Void doInBackground(Void... params) {
             try{
-
                 EditText e = (EditText) findViewById(R.id.messageBox);
                 String message = e.getText().toString();
-
-                //String message = "Hello";
-
                 byte[] sendBuffer = new byte[1024];
                 sendBuffer = message.getBytes();
-
                 DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, inetAddress, 4444);
-
                 clientSocket.send(sendPacket);
-
-
             }
 
             catch(IOException e){
@@ -122,12 +167,15 @@ public class MainActivity extends ActionBarActivity {
         Button btn = (Button) findViewById(R.id.sendButton);
         switch (view.getId()) {
             case R.id.clientButton:
+                System.out.println("Selected Client");
                 isServer = false;
                 btn.setEnabled(true);
                 break;
             case R.id.serverButton:
+                System.out.println("Selected Server");
                 isServer = true;
                 btn.setEnabled(false);
+                selectedServer();
                 break;
         }
     }
