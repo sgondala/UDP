@@ -1,5 +1,6 @@
 Bugs: <br>
 1) After selecting server, If we come to client, its not working. Probably because of infi loop, Should check. <br>
+2) Figure out how to wait for specified time to record and then send the packet
 
 TODO: <br>
 1)Client side - Client talks continuously, So capture it, divide into packets and send one by one <br>

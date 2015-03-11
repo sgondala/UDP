@@ -91,12 +91,11 @@ public class MainActivity extends ActionBarActivity {
         myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
         myAudioRecorder.setOutputFile(outputFile);
-        myAudioRecorder.setMaxDuration(1000);
+        myAudioRecorder.setMaxDuration(10000);
         try {
             myAudioRecorder.prepare();
             myAudioRecorder.start();
             myAudioRecorder.reset();
-
         }
         catch (IOException e1) {
             System.out.println("Problem in recording audio");
@@ -161,6 +160,7 @@ public class MainActivity extends ActionBarActivity {
         protected Void doInBackground(File... params) {
             try{
                 File file = params[0];
+                //System.out.println((int) file.length());
                 byte[] fileSendBuffer = new byte[(int) file.length()];
                 FileInputStream fileInputStream = new FileInputStream(file);
                 fileInputStream.read(fileSendBuffer);
