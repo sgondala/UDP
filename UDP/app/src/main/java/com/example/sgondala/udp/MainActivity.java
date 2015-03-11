@@ -21,8 +21,8 @@ import java.net.UnknownHostException;
 
 public class MainActivity extends ActionBarActivity {
 
-    DatagramSocket clientSocket;
-    InetAddress inetAddress;
+    DatagramSocket clientSocket = null;
+    InetAddress inetAddress = null;
     Boolean isServer = false;
     DatagramSocket serverSocket = null;
 
@@ -56,31 +56,32 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void clickedSend(View v){ //Default port of 4444
+
+        EditText e = (EditText) findViewById(R.id.partnerIP);
+        String ip = e.getText().toString();
+        InetAddress inetAddressTemp = null;
+        try {
+            inetAddressTemp = InetAddress.getByName(ip);
+        }
+        catch (UnknownHostException e1) {
+            System.out.println("Unknown host exception in string IP thing");
+        }
+
+        if(!inetAddressTemp.equals(inetAddress)) {
+
+            try {
+                clientSocket = new DatagramSocket();
+                inetAddress = inetAddressTemp;
+                String outPut = inetAddress.toString();
+                Toast.makeText(getApplicationContext(), "Connected, " + outPut, Toast.LENGTH_SHORT).show();
+            } catch (SocketException e2) {
+                System.out.println("A:Socket Exception");
+            }
+        }
+
         new sendUDPTask().execute();
         Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
-
-    public void clickedConnect(View v){
-        //Toast.makeText(getApplicationContext(), "Selected", Toast.LENGTH_SHORT).show();
-
-        try {
-            clientSocket = new DatagramSocket();
-            EditText e = (EditText) findViewById(R.id.partnerIP);
-            String ip = e.getText().toString();
-            //String ip = "localhost";
-            inetAddress= InetAddress.getByName(ip);
-            String outPut = inetAddress.toString();
-            Toast.makeText(getApplicationContext(), "Connected, "+outPut, Toast.LENGTH_SHORT).show();
-        } catch (SocketException e) {
-            System.out.println("A:Socket Exception");
-        }
-
-        catch (UnknownHostException e){
-            System.out.println("A:Unknown Host Exception");
-        }
-        //Toast.makeText(getApplicationContext(), "Done", Toast.LENGTH_SHORT).show();
-    }
-
 
     public void selectedServer(){
         try {
