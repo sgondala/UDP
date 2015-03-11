@@ -7,4 +7,4 @@ TODO: <br>
 
 Doubts: <br>
 1) Check if AsyncTask thread stops after the work is done.
-
+2) Check if ExternalStorage is available

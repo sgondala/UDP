@@ -1,6 +1,8 @@
 package com.example.sgondala.udp;
 
+import android.media.MediaRecorder;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -11,6 +13,8 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -25,6 +29,9 @@ public class MainActivity extends ActionBarActivity {
     InetAddress inetAddress = null;
     Boolean isServer = false;
     DatagramSocket serverSocket = null;
+    //MediaRecorder myAudioRecorder = null;
+    String outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,13 +80,33 @@ public class MainActivity extends ActionBarActivity {
                 clientSocket = new DatagramSocket();
                 inetAddress = inetAddressTemp;
                 String outPut = inetAddress.toString();
-                Toast.makeText(getApplicationContext(), "Connected, " + outPut, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), "Connected, " + outPut, Toast.LENGTH_SHORT).show();
             } catch (SocketException e2) {
                 System.out.println("A:Socket Exception");
             }
         }
 
-        new sendUDPTask().execute();
+        MediaRecorder myAudioRecorder = new MediaRecorder();
+        myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+        myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+        myAudioRecorder.setOutputFile(outputFile);
+        myAudioRecorder.setMaxDuration(1000);
+        try {
+            myAudioRecorder.prepare();
+            myAudioRecorder.start();
+            myAudioRecorder.reset();
+
+        }
+        catch (IOException e1) {
+            System.out.println("Problem in recording audio");
+        }
+
+        System.out.println("Recorded successfully !!!");
+        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp");
+        System.out.println("Took file");
+
+        new sendUDPTask().execute(file);
         Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
 
@@ -93,7 +120,6 @@ public class MainActivity extends ActionBarActivity {
 
         new receiveUDPTask().execute();
     }
-
 
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
@@ -128,6 +154,29 @@ public class MainActivity extends ActionBarActivity {
 
     }
 
+
+    private class sendUDPTask extends AsyncTask<File, Void, Void>{
+
+        @Override
+        protected Void doInBackground(File... params) {
+            try{
+                File file = params[0];
+                byte[] fileSendBuffer = new byte[(int) file.length()];
+                FileInputStream fileInputStream = new FileInputStream(file);
+                fileInputStream.read(fileSendBuffer);
+                fileInputStream.close();
+                DatagramPacket sendPacket = new DatagramPacket(fileSendBuffer, fileSendBuffer.length, inetAddress, 4444);
+                clientSocket.send(sendPacket);
+            }
+
+            catch(IOException e){
+                System.out.println("IOException in sending");
+            }
+            return null;
+        }
+    }
+
+    /*
     private class sendUDPTask extends AsyncTask<Void, Void, Void>{
 
         @Override
@@ -146,8 +195,8 @@ public class MainActivity extends ActionBarActivity {
             }
             return null;
         }
-
     }
+    */
 
     public void clickedRadioButton(View view){
         Button btn = (Button) findViewById(R.id.sendButton);
