@@ -4,6 +4,7 @@ import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -23,6 +24,10 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -35,6 +40,10 @@ public class MainActivity extends ActionBarActivity {
     DatagramSocket serverSocket = null;
     int sizeOfAudio = 10240;
     String outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording";
+    MediaPlayer myMediaPlayer = new MediaPlayer();
+    int fileNo = 0;
+    Queue<String> audioQueue = new LinkedList<String>();
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -132,6 +141,7 @@ public class MainActivity extends ActionBarActivity {
         new receiveUDPTask().execute();
     }
 
+
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
         byte[] buf = new byte[sizeOfAudio];
@@ -148,8 +158,18 @@ public class MainActivity extends ActionBarActivity {
                     FileOutputStream fileOutputStream = new FileOutputStream(outputFile+"Received.3gp");
                     fileOutputStream.write(buf);
                     fileOutputStream.close();
+                    audioQueue.add(outputFile+"Received.3gp");
                     System.out.println("Converted into 3gp");
-                    //new MediaPlayer().pla
+
+                    if(!myMediaPlayer.isPlaying()){
+                        System.out.println("Came into this loop");
+                        String temp = audioQueue.remove();
+                        myMediaPlayer.setDataSource(temp);
+                        myMediaPlayer.prepare();
+                        myMediaPlayer.start();
+                        System.out.println("Exited this loop");
+                    }
+                    
                 }
                 catch (IOException e) {
                     e.printStackTrace();
@@ -158,6 +178,7 @@ public class MainActivity extends ActionBarActivity {
             return null;
         }
     }
+
 
     /*
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
@@ -178,7 +199,7 @@ public class MainActivity extends ActionBarActivity {
                     e.printStackTrace();
                 }
 
-                final String str = new String(dp.getData(),0,dp.getLength());
+               final String str = new String(dp.getData(),0,dp.getLength());
 
                runOnUiThread(new Runnable() {
                    @Override
@@ -191,7 +212,9 @@ public class MainActivity extends ActionBarActivity {
             //return null;
         }
     }
+
     */
+
 
     private class sendUDPTask extends AsyncTask<File, Void, Void>{
 
