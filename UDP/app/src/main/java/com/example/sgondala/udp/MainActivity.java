@@ -1,5 +1,6 @@
 package com.example.sgondala.udp;
 
+import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -15,6 +16,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -31,9 +33,8 @@ public class MainActivity extends ActionBarActivity {
     InetAddress inetAddress = null;
     Boolean isServer = false;
     DatagramSocket serverSocket = null;
-    //MediaRecorder myAudioRecorder = null;
-    String outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp";
-
+    int sizeOfAudio = 10240;
+    String outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +93,7 @@ public class MainActivity extends ActionBarActivity {
         myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        myAudioRecorder.setOutputFile(outputFile);
+        myAudioRecorder.setOutputFile(outputFile+".3gp");
         //myAudioRecorder.setMaxDuration(5000);
         try {
             myAudioRecorder.prepare();
@@ -133,6 +134,34 @@ public class MainActivity extends ActionBarActivity {
 
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
+        byte[] buf = new byte[sizeOfAudio];
+        DatagramPacket dp = new DatagramPacket(buf, sizeOfAudio);
+
+        @Override
+        protected Void doInBackground(Void... params) {
+
+     //       while(true){
+                System.out.println("Listening for packets");
+                try {
+                    serverSocket.receive(dp);
+                    System.out.println("Got packet!!!!!");
+                    FileOutputStream fileOutputStream = new FileOutputStream(outputFile+"Received.3gp");
+                    fileOutputStream.write(buf);
+                    fileOutputStream.close();
+                    System.out.println("Converted into 3gp");
+                    //new MediaPlayer().pla
+                }
+                catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            return null;
+        }
+    }
+
+    /*
+    private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
+
         byte[] buf = new byte[1024];
         DatagramPacket dp = new DatagramPacket(buf, 1024);
 
@@ -161,9 +190,8 @@ public class MainActivity extends ActionBarActivity {
            }
             //return null;
         }
-
     }
-
+    */
 
     private class sendUDPTask extends AsyncTask<File, Void, Void>{
 
@@ -186,28 +214,6 @@ public class MainActivity extends ActionBarActivity {
             return null;
         }
     }
-
-    /*
-    private class sendUDPTask extends AsyncTask<Void, Void, Void>{
-
-        @Override
-        protected Void doInBackground(Void... params) {
-            try{
-                EditText e = (EditText) findViewById(R.id.messageBox);
-                String message = e.getText().toString();
-                byte[] sendBuffer = new byte[1024];
-                sendBuffer = message.getBytes();
-                DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, inetAddress, 4444);
-                clientSocket.send(sendPacket);
-            }
-
-            catch(IOException e){
-                System.out.println("IOException in sending");
-            }
-            return null;
-        }
-    }
-    */
 
     public void clickedRadioButton(View view){
         Button btn = (Button) findViewById(R.id.sendButton);
