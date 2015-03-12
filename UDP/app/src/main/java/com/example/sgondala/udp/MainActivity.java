@@ -21,6 +21,8 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -86,27 +88,36 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        MediaRecorder myAudioRecorder = new MediaRecorder();
+        final MediaRecorder myAudioRecorder = new MediaRecorder();
         myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
         myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
         myAudioRecorder.setOutputFile(outputFile);
-        myAudioRecorder.setMaxDuration(10000);
+        //myAudioRecorder.setMaxDuration(5000);
         try {
             myAudioRecorder.prepare();
             myAudioRecorder.start();
-            myAudioRecorder.reset();
+            new Timer().schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            myAudioRecorder.stop();
+                            myAudioRecorder.reset();
+                            System.out.println("Recorded successfully !!!");
+                            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp");
+                            System.out.println("Took file");
+                            new sendUDPTask().execute(file);
+                            Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+            }, 5000);
         }
         catch (IOException e1) {
             System.out.println("Problem in recording audio");
         }
-
-        System.out.println("Recorded successfully !!!");
-        File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp");
-        System.out.println("Took file");
-
-        new sendUDPTask().execute(file);
-        Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
     }
 
     public void selectedServer(){
