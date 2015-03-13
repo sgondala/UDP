@@ -45,10 +45,34 @@ public class MainActivity extends ActionBarActivity {
     Queue<String> audioQueue = new LinkedList<String>();
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        myMediaPlayer.setOnCompletionListener(
+                new MediaPlayer.OnCompletionListener() {
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+                        //System.out.println("Yo man, This works properly!!");
+                        if(audioQueue.size()>0) {
+                            try {
+                                //System.out.println("Should play now ....");
+                                String temp = audioQueue.remove();
+                                myMediaPlayer.reset();
+                                myMediaPlayer.setDataSource(temp);
+                                //System.out.println("Diladaraa..");
+                                myMediaPlayer.prepare();
+                                System.out.println("Playing "+ temp);
+                                myMediaPlayer.start();
+                            } catch (IOException e) {
+                                System.out.println("I love you rachel");
+                            }
+                        }
+                    }
+                }
+        );
 
     }
 
@@ -139,6 +163,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         new receiveUDPTask().execute();
+        //new mediaPlayingTask().execute();
     }
 
 
@@ -150,71 +175,44 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected Void doInBackground(Void... params) {
 
-     //       while(true){
-                System.out.println("Listening for packets");
-                try {
-                    serverSocket.receive(dp);
-                    System.out.println("Got packet!!!!!");
-                    FileOutputStream fileOutputStream = new FileOutputStream(outputFile+"Received.3gp");
-                    fileOutputStream.write(buf);
-                    fileOutputStream.close();
-                    audioQueue.add(outputFile+"Received.3gp");
-                    System.out.println("Converted into 3gp");
+        while(true){
+            System.out.println("Listening for packets");
+            try {
+                serverSocket.receive(dp);
+                System.out.println("Got packet!!!!!");
+                String fileNumberAdding = Integer.toString(fileNo);
+                fileNo = (fileNo + 1)%30;
+                FileOutputStream fileOutputStream = new FileOutputStream(outputFile + "Received" + fileNumberAdding+ ".3gp");
+                fileOutputStream.write(buf);
+                fileOutputStream.close();
+                audioQueue.add(outputFile + "Received" + fileNumberAdding+ ".3gp");
+                System.out.println("Converted into 3gp");
+
 
                     if(!myMediaPlayer.isPlaying()){
                         System.out.println("Came into this loop");
                         String temp = audioQueue.remove();
+                        myMediaPlayer.reset();
                         myMediaPlayer.setDataSource(temp);
+                        System.out.println("Diladaraa..");
                         myMediaPlayer.prepare();
+                        System.out.println("Sajda..");
                         myMediaPlayer.start();
                         System.out.println("Exited this loop");
+                        //http://stackoverflow.com/questions/17484773/how-to-create-and-play-a-sound-or-audio-queue-in-android
                     }
-                    
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
+                    else{
+                        System.out.println("Already playing, do something else");
+                        System.out.println(audioQueue.size());
+                    }
 
-            return null;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
-    }
-
-
-    /*
-    private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
-
-        byte[] buf = new byte[1024];
-        DatagramPacket dp = new DatagramPacket(buf, 1024);
-
-        @Override
-        protected Void doInBackground(Void... params) {
-
-           while(true){
-                System.out.println("Listening for packets");
-                try {
-                    serverSocket.receive(dp);
-                    System.out.println("Got packet!!!!!");
-                }
-                catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-               final String str = new String(dp.getData(),0,dp.getLength());
-
-               runOnUiThread(new Runnable() {
-                   @Override
-                   public void run() {
-                       TextView displayBox = (TextView) findViewById(R.id.displayBox);
-                       displayBox.setText(str);
-                   }
-               });
-           }
             //return null;
         }
     }
-
-    */
-
 
     private class sendUDPTask extends AsyncTask<File, Void, Void>{
 
