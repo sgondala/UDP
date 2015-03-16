@@ -44,8 +44,10 @@ public class MainActivity extends ActionBarActivity {
     int fileNo = 0;
     int sendFileNo = 0;
     Queue<String> audioQueue = new LinkedList<String>();
+    Queue<String> sendingAudioQueue = new LinkedList<String>();
     Boolean stopClicked = false;
     Boolean tempToBreak = false;
+    sendUDPTask a = new sendUDPTask();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -129,6 +131,7 @@ public class MainActivity extends ActionBarActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
+
                 while(true) {
                     System.out.println("New loop...");
                     if(stopClicked) {System.out.println("Broke the outer while...");break;}
@@ -149,12 +152,18 @@ public class MainActivity extends ActionBarActivity {
                                     public void run() {
                                         myAudioRecorder.stop();
                                         myAudioRecorder.reset();
-                                        System.out.println("Recorded successfully !!!");
-                                        File file = new File(outputFileSending);
-                                        System.out.println("Took file");
-                                        new sendUDPTask().execute(file);
-                                        System.out.println("Sent a packet...");
-                                        //Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
+
+                                        if(a.getStatus() == AsyncTask.Status.RUNNING){
+                                            sendingAudioQueue.add(outputFileSending);
+                                            System.out.println("Just added..");
+                                        }
+                                        else{
+                                            sendingAudioQueue.add(outputFileSending);
+                                            System.out.println("Added and executing");
+                                            a = new sendUDPTask();
+                                            a.execute();
+                                        }
+                                        tempToBreak = true;
                                     }
                                 });
                             }
@@ -227,24 +236,24 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private class sendUDPTask extends AsyncTask<File, Void, Void>{
+    private class sendUDPTask extends AsyncTask<Void, Void, Void>{
 
         @Override
-        protected Void doInBackground(File... params) {
-            try{
-                File file = params[0];
-                //System.out.println((int) file.length());
-                byte[] fileSendBuffer = new byte[(int) file.length()];
-                FileInputStream fileInputStream = new FileInputStream(file);
-                fileInputStream.read(fileSendBuffer);
-                fileInputStream.close();
-                DatagramPacket sendPacket = new DatagramPacket(fileSendBuffer, fileSendBuffer.length, inetAddress, 4444);
-                clientSocket.send(sendPacket);
-                tempToBreak = true;
-            }
+        protected Void doInBackground(Void... params) {
 
-            catch(IOException e){
-                System.out.println("IOException in sending");
+            while(sendingAudioQueue.size()!=0) {
+                try {
+                    String outputFileSending = sendingAudioQueue.remove();
+                    File file = new File(outputFileSending);
+                    byte[] fileSendBuffer = new byte[(int) file.length()];
+                    FileInputStream fileInputStream = new FileInputStream(file);
+                    fileInputStream.read(fileSendBuffer);
+                    fileInputStream.close();
+                    DatagramPacket sendPacket = new DatagramPacket(fileSendBuffer, fileSendBuffer.length, inetAddress, 4444);
+                    clientSocket.send(sendPacket);
+                } catch (IOException e) {
+                    System.out.println("IOException in sending");
+                }
             }
             return null;
         }
