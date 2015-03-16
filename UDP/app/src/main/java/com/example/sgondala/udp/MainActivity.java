@@ -42,8 +42,10 @@ public class MainActivity extends ActionBarActivity {
     String outputFile = Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording";
     MediaPlayer myMediaPlayer = new MediaPlayer();
     int fileNo = 0;
+    int sendFileNo = 0;
     Queue<String> audioQueue = new LinkedList<String>();
     Boolean stopClicked = false;
+    Boolean tempToBreak = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -99,6 +101,7 @@ public class MainActivity extends ActionBarActivity {
 
     public void clickedSend(View v){ //Default port of 4444
 
+        stopClicked = false;
         EditText e = (EditText) findViewById(R.id.partnerIP);
         String ip = e.getText().toString();
         InetAddress inetAddressTemp = null;
@@ -122,35 +125,51 @@ public class MainActivity extends ActionBarActivity {
         }
 
         final MediaRecorder myAudioRecorder = new MediaRecorder();
-        myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-        myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-        myAudioRecorder.setOutputFile(outputFile+".3gp");
-        //myAudioRecorder.setMaxDuration(5000);
-        try {
-            myAudioRecorder.prepare();
-            myAudioRecorder.start();
-            new Timer().schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            myAudioRecorder.stop();
-                            myAudioRecorder.reset();
-                            System.out.println("Recorded successfully !!!");
-                            File file = new File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/myRecording.3gp");
-                            System.out.println("Took file");
-                            new sendUDPTask().execute(file);
-                            Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    System.out.println("New loop...");
+                    if(stopClicked) {System.out.println("Broke the outer while...");break;}
+                    myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+                    myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
+                    myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+                    final String outputFileSending = outputFile + "S" + Integer.toString(sendFileNo) + ".3gp";
+                    sendFileNo = (sendFileNo + 1)%30;
+                    myAudioRecorder.setOutputFile(outputFileSending);
+                    try {
+                        myAudioRecorder.prepare();
+                        myAudioRecorder.start();
+                        new Timer().schedule(new TimerTask() {
+                            @Override
+                            public void run() {
+                                runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        myAudioRecorder.stop();
+                                        myAudioRecorder.reset();
+                                        System.out.println("Recorded successfully !!!");
+                                        File file = new File(outputFileSending);
+                                        System.out.println("Took file");
+                                        new sendUDPTask().execute(file);
+                                        System.out.println("Sent a packet...");
+                                        //Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                            }
+                        }, 500);
+
+                        while(true){
+                            if(tempToBreak){tempToBreak = false; break;}
                         }
-                    });
+
+                    } catch (IOException e1) {
+                        System.out.println("Problem in recording audio");
+                    }
                 }
-            }, 5000);
-        }
-        catch (IOException e1) {
-            System.out.println("Problem in recording audio");
-        }
+            }
+        }).start();
     }
 
     public void selectedServer(){
@@ -221,6 +240,7 @@ public class MainActivity extends ActionBarActivity {
                 fileInputStream.close();
                 DatagramPacket sendPacket = new DatagramPacket(fileSendBuffer, fileSendBuffer.length, inetAddress, 4444);
                 clientSocket.send(sendPacket);
+                tempToBreak = true;
             }
 
             catch(IOException e){
@@ -247,7 +267,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void clickedStop(View view){
+    public void clickedStop(View view){
         stopClicked = true;
     }
 
