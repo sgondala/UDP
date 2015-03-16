@@ -43,8 +43,7 @@ public class MainActivity extends ActionBarActivity {
     MediaPlayer myMediaPlayer = new MediaPlayer();
     int fileNo = 0;
     Queue<String> audioQueue = new LinkedList<String>();
-
-
+    Boolean stopClicked = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -163,9 +162,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         new receiveUDPTask().execute();
-        //new mediaPlayingTask().execute();
     }
-
 
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
@@ -188,7 +185,6 @@ public class MainActivity extends ActionBarActivity {
                 audioQueue.add(outputFile + "Received" + fileNumberAdding+ ".3gp");
                 System.out.println("Converted into 3gp");
 
-
                     if(!myMediaPlayer.isPlaying()){
                         System.out.println("Came into this loop");
                         String temp = audioQueue.remove();
@@ -199,7 +195,6 @@ public class MainActivity extends ActionBarActivity {
                         System.out.println("Sajda..");
                         myMediaPlayer.start();
                         System.out.println("Exited this loop");
-                        //http://stackoverflow.com/questions/17484773/how-to-create-and-play-a-sound-or-audio-queue-in-android
                     }
                     else{
                         System.out.println("Already playing, do something else");
@@ -210,7 +205,6 @@ public class MainActivity extends ActionBarActivity {
                 e.printStackTrace();
             }
         }
-            //return null;
         }
     }
 
@@ -251,6 +245,10 @@ public class MainActivity extends ActionBarActivity {
                 selectedServer();
                 break;
         }
+    }
+
+    private void clickedStop(View view){
+        stopClicked = true;
     }
 
 }
