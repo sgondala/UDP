@@ -1,7 +1,9 @@
 package com.example.sgondala.udp;
 
+import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.SoundPool;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.annotation.NonNull;
@@ -19,6 +21,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -47,13 +50,23 @@ public class MainActivity extends ActionBarActivity {
     Queue<String> sendingAudioQueue = new LinkedList<String>();
     Boolean stopClicked = false;
     Boolean tempToBreak = false;
+    Boolean soundLoopVariable = false;
     sendUDPTask a = new sendUDPTask();
+    playingSongsTask b = new playingSongsTask();
+    SoundPool soundPool = new SoundPool(1,3,0); //3 for music stream, Plays til something is in queue
+    //Queue<Integer> soundID  = new LinkedList<Integer>();
+    Boolean[] loadedSoundID = new Boolean[100];
+    Integer[] soundID = new Integer[100];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        for(int i=0;i<100;i++){
+            loadedSoundID[i]=false;
+            soundID[i]=0;
+        }
         myMediaPlayer.setOnCompletionListener(
                 new MediaPlayer.OnCompletionListener() {
                     @Override
@@ -205,14 +218,50 @@ public class MainActivity extends ActionBarActivity {
             try {
                 serverSocket.receive(dp);
                 System.out.println("Got packet!!!!!");
-                String fileNumberAdding = Integer.toString(fileNo);
+                final String fileNumberAdding = Integer.toString(fileNo);
                 fileNo = (fileNo + 1)%30;
                 FileOutputStream fileOutputStream = new FileOutputStream(outputFile + "Received" + fileNumberAdding+ ".3gp");
                 fileOutputStream.write(buf);
                 fileOutputStream.close();
-                audioQueue.add(outputFile + "Received" + fileNumberAdding+ ".3gp");
+                String temp = outputFile + "Received" + fileNumberAdding+ ".3gp";
+                audioQueue.add(fileNumberAdding);
+                //int returnLoad = soundPool.load(temp, 0);
                 System.out.println("Converted into 3gp");
 
+                    if(b.getStatus()==Status.RUNNING){
+                        System.out.println("Already running..");
+                        final int returnLoad = soundPool.load(temp, 0);
+                        soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+                            @Override
+                            public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                                if(status==0) {
+                                    loadedSoundID[Integer.parseInt(fileNumberAdding)] = true;
+                                    soundID[Integer.parseInt(fileNumberAdding)] = returnLoad;
+                                    System.out.println("Added in already running..");
+                                }
+                            }
+                        });
+
+                        //Do nothing
+                    }
+                    else{
+                        System.out.println("Not running..");
+                        final int returnLoad = soundPool.load(temp, 0);
+                        soundPool.setOnLoadCompleteListener(new SoundPool.OnLoadCompleteListener() {
+                            @Override
+                            public void onLoadComplete(SoundPool soundPool, int sampleId, int status) {
+                                if(status==0) {
+                                    loadedSoundID[Integer.parseInt(fileNumberAdding)] = true;
+                                    soundID[Integer.parseInt(fileNumberAdding)] = returnLoad;
+                                    //soundID.add(returnLoad);
+                                    System.out.println("Added in not running case..");
+                                }
+                            }
+                        });
+                        b = new playingSongsTask();
+                        b.execute();
+                    }
+                    /*
                     if(!myMediaPlayer.isPlaying()){
                         System.out.println("Came into this loop");
                         String temp = audioQueue.remove();
@@ -228,11 +277,51 @@ public class MainActivity extends ActionBarActivity {
                         System.out.println("Already playing, do something else");
                         System.out.println(audioQueue.size());
                     }
+                    */
 
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+        }
+    }
+
+    private class playingSongsTask extends AsyncTask<Void, Void, Void>{
+        @Override
+        protected Void doInBackground(Void... params) {
+            System.out.println("Came to play..");
+            while(audioQueue.size()!=0){
+                soundLoopVariable = false;
+                //int temp = soundID.remove();
+
+                String indexPlaying = audioQueue.remove();
+                //System.out.println()
+
+                while(true) {
+                    if (loadedSoundID[Integer.parseInt(indexPlaying)] == true) {
+                        int temp = soundID[Integer.parseInt(indexPlaying)];
+                        soundPool.play(temp, (float) 0.5, (float) 0.5, 0, 0, 1);
+                        loadedSoundID[Integer.parseInt(indexPlaying)] = false;
+                        break;
+                    }
+                }
+                //final Boolean b= false;
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                 soundLoopVariable = true;
+                            }
+                        });
+                    }
+                }, 495);
+                while(true){
+                    if(soundLoopVariable==true) break;
+                }
+            }
+            return null;
         }
     }
 
