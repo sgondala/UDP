@@ -1,5 +1,7 @@
 package com.example.sgondala.udp;
 
+import android.media.AudioFormat;
+import android.media.AudioRecord;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
@@ -7,6 +9,8 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.Xml;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -24,6 +28,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -47,11 +52,20 @@ public class MainActivity extends ActionBarActivity {
     Boolean stopClicked = false;
     Boolean tempToBreak = false;
 
+    int RecordingRate = 44100;
+    int Channel = AudioFormat.CHANNEL_IN_MONO;
+    int Format = AudioFormat.ENCODING_PCM_16BIT;
+
+    int BufferSize = AudioRecord.getMinBufferSize(RecordingRate,Channel, Format);
+    int BufferElementsToRecord = 1024;
+    int BytesPerElement = 2;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        /*
         myMediaPlayer.setOnCompletionListener(
                 new MediaPlayer.OnCompletionListener() {
                     @Override
@@ -74,7 +88,19 @@ public class MainActivity extends ActionBarActivity {
                     }
                 }
         );
+        */
+        //myAudioRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, RecordingRate, Channel, Format, 2048);
 
+        /*
+        byte[] byf = new byte[100];
+        int ln = byf.length;
+        System.out.println()
+         DatagramPacket dp;
+        dp.getLength()
+        */
+
+
+        System.out.println(BufferSize);
     }
 
     @Override
@@ -98,6 +124,35 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
+    private static int[] mSampleRates = new int[] { 44100, 22050,11025, 8000  };
+
+    public AudioRecord findAudioRecord() {
+        for (int rate : mSampleRates) {
+            for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT }) {
+                for (short channelConfig : new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO }) {
+                    try {
+                        //Log.d(C.TAG, "Attempting rate " + rate + "Hz, bits: " + audioFormat + ", channel: "  + channelConfig);
+                        int bufferSize = AudioRecord.getMinBufferSize(rate, channelConfig, audioFormat);
+
+                        if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
+                            // check if we can instantiate and have a successd
+
+                            AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, rate, channelConfig, audioFormat, bufferSize);
+
+                            if (recorder.getState() == AudioRecord.STATE_INITIALIZED)
+                                return recorder;
+                        }
+                    } catch (Exception e) {
+                        //Log.e(C.TAG, rate + "Exception, keep trying.",e);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+
 
     public void clickedSend(View v){ //Default port of 4444
 
@@ -124,11 +179,36 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        final MediaRecorder myAudioRecorder = new MediaRecorder();
+        //final MediaRecorder myAudioRecorder = new MediaRecorder();
 
+        //final AudioRecord
         new Thread(new Runnable() {
             @Override
             public void run() {
+                AudioRecord myAudioRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, RecordingRate, Channel, Format, 2048);
+
+                AudioRecord recorder = findAudioRecord();
+                System.out.println(recorder.getAudioFormat());
+                System.out.println(recorder.getChannelConfiguration());
+                System.out.println(recorder.getSampleRate());
+                recorder.startRecording();
+                //myAudioRecorder.startRecording();
+                byte[] tempByteArray = new byte[2048];
+                //byte f = 0;
+                //Arrays.fill(tempByteArray, f);
+                while(!stopClicked){
+                    try {
+
+                        int out = recorder.read(tempByteArray, 0, 2048);
+                        System.out.println(out);
+                        DatagramPacket sendPacket = new DatagramPacket(tempByteArray, out, inetAddress, 4444);
+                        clientSocket.send(sendPacket);
+                    } catch (IOException e1) {
+                        e1.printStackTrace();
+                    }
+                }
+                System.out.println("Came out");
+                /*
                 while(true) {
                     System.out.println("New loop...");
                     if(stopClicked) {System.out.println("Broke the outer while...");break;}
@@ -168,9 +248,13 @@ public class MainActivity extends ActionBarActivity {
                         System.out.println("Problem in recording audio");
                     }
                 }
+
+                */
             }
         }).start();
     }
+
+    //public int
 
     public void selectedServer(){
         try {
