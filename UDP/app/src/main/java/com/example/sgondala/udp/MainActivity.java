@@ -1,7 +1,9 @@
 package com.example.sgondala.udp;
 
 import android.media.AudioFormat;
+import android.media.AudioManager;
 import android.media.AudioRecord;
+import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.os.AsyncTask;
@@ -36,11 +38,18 @@ import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import java.net.MalformedURLException;
+/*
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+*/
 
 public class MainActivity extends ActionBarActivity {
 
-    DatagramSocket clientSocket = null;
-    InetAddress inetAddress = null;
+    /*  Old ones, Should remove them
     Boolean isServer = false;
     DatagramSocket serverSocket = null;
     int sizeOfAudio = 10240;
@@ -49,7 +58,6 @@ public class MainActivity extends ActionBarActivity {
     int fileNo = 0;
     int sendFileNo = 0;
     Queue<String> audioQueue = new LinkedList<String>();
-    Boolean stopClicked = false;
     Boolean tempToBreak = false;
 
     int RecordingRate = 44100;
@@ -59,48 +67,39 @@ public class MainActivity extends ActionBarActivity {
     int BufferSize = AudioRecord.getMinBufferSize(RecordingRate,Channel, Format);
     int BufferElementsToRecord = 1024;
     int BytesPerElement = 2;
+    */
 
+    //Client variables
+    private static final int RECORDING_RATE = 44100;
+    private static final int CHANNEL = AudioFormat.CHANNEL_IN_MONO;
+    private static final int FORMAT = AudioFormat.ENCODING_PCM_16BIT;
+    private AudioRecord recorder;
+    private static int BUFFER_SIZE = AudioRecord.getMinBufferSize(
+            RECORDING_RATE, CHANNEL, FORMAT);
+    Boolean stopClicked = false;
+    DatagramSocket clientSocket = null;
+    InetAddress inetAddress = null;
+
+    //Server variables
+
+    int streamType = 0; //Stream_VoiceCall, Should check other possibilitites
+    int sampleRate = 44100; //Should see if
+    int channel = AudioFormat.CHANNEL_IN_MONO;
+    int format = AudioFormat.ENCODING_PCM_16BIT;
+    int mode = AudioTrack.MODE_STREAM;
+    int serverBufferSize = 4096;
+    AudioTrack myAudioTrack;
+
+    Boolean isServer = false;
+    DatagramSocket serverSocket = null;
+    static int bufferSize = 9728;
+    Queue<byte[]> packetQueue = new LinkedList<byte[]>();
+    Thread playerThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        /*
-        myMediaPlayer.setOnCompletionListener(
-                new MediaPlayer.OnCompletionListener() {
-                    @Override
-                    public void onCompletion(MediaPlayer mp) {
-                        //System.out.println("Yo man, This works properly!!");
-                        if(audioQueue.size()>0) {
-                            try {
-                                //System.out.println("Should play now ....");
-                                String temp = audioQueue.remove();
-                                myMediaPlayer.reset();
-                                myMediaPlayer.setDataSource(temp);
-                                //System.out.println("Diladaraa..");
-                                myMediaPlayer.prepare();
-                                System.out.println("Playing "+ temp);
-                                myMediaPlayer.start();
-                            } catch (IOException e) {
-                                System.out.println("I love you rachel");
-                            }
-                        }
-                    }
-                }
-        );
-        */
-        //myAudioRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, RecordingRate, Channel, Format, 2048);
-
-        /*
-        byte[] byf = new byte[100];
-        int ln = byf.length;
-        System.out.println()
-         DatagramPacket dp;
-        dp.getLength()
-        */
-
-
-        System.out.println(BufferSize);
     }
 
     @Override
@@ -124,35 +123,6 @@ public class MainActivity extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
-
-    private static int[] mSampleRates = new int[] { 44100, 22050,11025, 8000  };
-
-    public AudioRecord findAudioRecord() {
-        for (int rate : mSampleRates) {
-            for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT }) {
-                for (short channelConfig : new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO }) {
-                    try {
-                        //Log.d(C.TAG, "Attempting rate " + rate + "Hz, bits: " + audioFormat + ", channel: "  + channelConfig);
-                        int bufferSize = AudioRecord.getMinBufferSize(rate, channelConfig, audioFormat);
-
-                        if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
-                            // check if we can instantiate and have a successd
-
-                            AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, rate, channelConfig, audioFormat, bufferSize);
-
-                            if (recorder.getState() == AudioRecord.STATE_INITIALIZED)
-                                return recorder;
-                        }
-                    } catch (Exception e) {
-                        //Log.e(C.TAG, rate + "Exception, keep trying.",e);
-                    }
-                }
-            }
-        }
-        return null;
-    }
-
-
 
     public void clickedSend(View v){ //Default port of 4444
 
@@ -179,82 +149,40 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        //final MediaRecorder myAudioRecorder = new MediaRecorder();
+        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, RECORDING_RATE, CHANNEL, FORMAT, BUFFER_SIZE * 10);
+        System.out.println(recorder.getAudioFormat());
+        System.out.println(recorder.getChannelConfiguration());
+        System.out.println(recorder.getSampleRate());
 
-        //final AudioRecord
         new Thread(new Runnable() {
             @Override
             public void run() {
-                AudioRecord myAudioRecorder = new AudioRecord(MediaRecorder.AudioSource.MIC, RecordingRate, Channel, Format, 2048);
+                byte[] buffer = new byte[8000]; //
+                DatagramPacket packet; // Reusable packet
 
-                AudioRecord recorder = findAudioRecord();
-                System.out.println(recorder.getAudioFormat());
-                System.out.println(recorder.getChannelConfiguration());
-                System.out.println(recorder.getSampleRate());
                 recorder.startRecording();
-                //myAudioRecorder.startRecording();
-                byte[] tempByteArray = new byte[2048];
-                //byte f = 0;
-                //Arrays.fill(tempByteArray, f);
                 while(!stopClicked){
                     try {
-
-                        int out = recorder.read(tempByteArray, 0, 2048);
-                        System.out.println(out);
-                        DatagramPacket sendPacket = new DatagramPacket(tempByteArray, out, inetAddress, 4444);
-                        clientSocket.send(sendPacket);
+                        Thread.sleep(90);
+                        int out = recorder.read(buffer, 0, buffer.length);
+                        System.out.println("out is "+out);
+                        packet = new DatagramPacket(buffer, out, inetAddress, 4444);
+                        clientSocket.send(packet);
                     } catch (IOException e1) {
+                        System.out.println("Error in sending here");
                         e1.printStackTrace();
                     }
+
+                    catch (InterruptedException e1) {
+                        System.out.println("Yoyo");
+                    }
+
                 }
                 System.out.println("Came out");
-                /*
-                while(true) {
-                    System.out.println("New loop...");
-                    if(stopClicked) {System.out.println("Broke the outer while...");break;}
-                    myAudioRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-                    myAudioRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-                    myAudioRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
-                    final String outputFileSending = outputFile + "S" + Integer.toString(sendFileNo) + ".3gp";
-                    sendFileNo = (sendFileNo + 1)%30;
-                    myAudioRecorder.setOutputFile(outputFileSending);
-                    try {
-                        myAudioRecorder.prepare();
-                        myAudioRecorder.start();
-                        new Timer().schedule(new TimerTask() {
-                            @Override
-                            public void run() {
-                                runOnUiThread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        myAudioRecorder.stop();
-                                        myAudioRecorder.reset();
-                                        System.out.println("Recorded successfully !!!");
-                                        File file = new File(outputFileSending);
-                                        System.out.println("Took file");
-                                        new sendUDPTask().execute(file);
-                                        System.out.println("Sent a packet...");
-                                        //Toast.makeText(getApplicationContext(), "Sent successfully", Toast.LENGTH_SHORT).show();
-                                    }
-                                });
-                            }
-                        }, 500);
-
-                        while(true){
-                            if(tempToBreak){tempToBreak = false; break;}
-                        }
-
-                    } catch (IOException e1) {
-                        System.out.println("Problem in recording audio");
-                    }
-                }
-
-                */
             }
         }).start();
     }
 
-    //public int
 
     public void selectedServer(){
         try {
@@ -264,73 +192,53 @@ public class MainActivity extends ActionBarActivity {
             System.out.println("Error in creating new socket");
         }
 
+        myAudioTrack = new AudioTrack(AudioManager.STREAM_VOICE_CALL, 44100, AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT, 16000,AudioTrack.MODE_STREAM);
+
+        myAudioTrack.play();
+        playerThread = new Thread(m_packetCollector);
+        playerThread.start();
         new receiveUDPTask().execute();
     }
 
+
+    Runnable m_packetCollector = new Runnable()
+    {
+        public void run()
+        {
+            Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
+            byte[] noiseData = null;
+            while(true)
+            {
+                if (!packetQueue.isEmpty()) {
+                    noiseData = packetQueue.remove();
+                    myAudioTrack.write(noiseData, 0, noiseData.length);
+                    System.out.println("Wrote new");
+                }
+            }
+        }
+    };
+
     private class receiveUDPTask extends AsyncTask<Void, Void, Void>{
 
-        byte[] buf = new byte[sizeOfAudio];
-        DatagramPacket dp = new DatagramPacket(buf, sizeOfAudio);
+        byte[] buf = new byte[8000];
+        DatagramPacket dp = new DatagramPacket(buf, 8000);
 
         @Override
         protected Void doInBackground(Void... params) {
 
-        while(true){
-            System.out.println("Listening for packets");
-            try {
-                serverSocket.receive(dp);
-                System.out.println("Got packet!!!!!");
-                String fileNumberAdding = Integer.toString(fileNo);
-                fileNo = (fileNo + 1)%30;
-                FileOutputStream fileOutputStream = new FileOutputStream(outputFile + "Received" + fileNumberAdding+ ".3gp");
-                fileOutputStream.write(buf);
-                fileOutputStream.close();
-                audioQueue.add(outputFile + "Received" + fileNumberAdding+ ".3gp");
-                System.out.println("Converted into 3gp");
-
-                    if(!myMediaPlayer.isPlaying()){
-                        System.out.println("Came into this loop");
-                        String temp = audioQueue.remove();
-                        myMediaPlayer.reset();
-                        myMediaPlayer.setDataSource(temp);
-                        System.out.println("Diladaraa..");
-                        myMediaPlayer.prepare();
-                        System.out.println("Sajda..");
-                        myMediaPlayer.start();
-                        System.out.println("Exited this loop");
-                    }
-                    else{
-                        System.out.println("Already playing, do something else");
-                        System.out.println(audioQueue.size());
-                    }
-
-            } catch (IOException e) {
-                e.printStackTrace();
+            while(true){
+                System.out.println("Listening for packets");
+                try {
+                    serverSocket.receive(dp);
+                    System.out.println("Got packet!!!!!");
+                    System.out.println(dp.getLength());
+                    packetQueue.add(buf);
+                    System.out.println("Added");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
-        }
-        }
-    }
-
-    private class sendUDPTask extends AsyncTask<File, Void, Void>{
-
-        @Override
-        protected Void doInBackground(File... params) {
-            try{
-                File file = params[0];
-                //System.out.println((int) file.length());
-                byte[] fileSendBuffer = new byte[(int) file.length()];
-                FileInputStream fileInputStream = new FileInputStream(file);
-                fileInputStream.read(fileSendBuffer);
-                fileInputStream.close();
-                DatagramPacket sendPacket = new DatagramPacket(fileSendBuffer, fileSendBuffer.length, inetAddress, 4444);
-                clientSocket.send(sendPacket);
-                tempToBreak = true;
-            }
-
-            catch(IOException e){
-                System.out.println("IOException in sending");
-            }
-            return null;
         }
     }
 
@@ -356,6 +264,35 @@ public class MainActivity extends ActionBarActivity {
     }
 
 }
+
+    /*
+    private static int[] mSampleRates = new int[] { 44100, 22050,11025, 8000  };
+
+    public AudioRecord findAudioRecord() {
+        for (int rate : mSampleRates) {
+            for (short audioFormat : new short[] { AudioFormat.ENCODING_PCM_8BIT, AudioFormat.ENCODING_PCM_16BIT }) {
+                for (short channelConfig : new short[] { AudioFormat.CHANNEL_IN_MONO, AudioFormat.CHANNEL_IN_STEREO }) {
+                    try {
+                        //Log.d(C.TAG, "Attempting rate " + rate + "Hz, bits: " + audioFormat + ", channel: "  + channelConfig);
+                        int bufferSize = AudioRecord.getMinBufferSize(rate, channelConfig, audioFormat);
+
+                        if (bufferSize != AudioRecord.ERROR_BAD_VALUE) {
+                            // check if we can instantiate and have a successd
+
+                            AudioRecord recorder = new AudioRecord(MediaRecorder.AudioSource.DEFAULT, rate, channelConfig, audioFormat, bufferSize);
+
+                            if (recorder.getState() == AudioRecord.STATE_INITIALIZED)
+                                return recorder;
+                        }
+                    } catch (Exception e) {
+                        //Log.e(C.TAG, rate + "Exception, keep trying.",e);
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    */
 
 
 
