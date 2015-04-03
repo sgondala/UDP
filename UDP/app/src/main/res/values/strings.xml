@@ -10,4 +10,5 @@
     <string name="sendString">Send</string>
     <string name="connectString">Connect</string>
     <string name="welcomeString">\t\t\t\t  Welcome!! \nSelect one of server or client \n\n</string>
+    <string name="ABCDString">ABCDEF</string>
 </resources>
